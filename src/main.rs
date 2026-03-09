@@ -48,14 +48,14 @@ impl Language {
             (_, "no_data") => if self == Language::Russian { ": нет данных".to_string() } else { ": no data".to_string() },
             (_, "skipped_no_steamid") => if self == Language::Russian { ": нет SteamID для переименования".to_string() } else { ": no SteamID for renaming".to_string() },
             (_, "skipped_no_login") => if self == Language::Russian { ": нет login для переименования".to_string() } else { ": no login for renaming".to_string() },
-            (_, "failed_create_accounts") => if self == Language::Russian { "Не удалось создать accounts.txt: ".to_string() } else { "Failed to create accounts.txt: ".to_string() },
-            (_, "error_write_accounts") => if self == Language::Russian { "Ошибка записи в accounts.txt: ".to_string() } else { "Error writing to accounts.txt: ".to_string() },
+            (_, "failed_create_accounts") => if self == Language::Russian { "Не удалось создать _accounts.txt: ".to_string() } else { "Failed to create _accounts.txt: ".to_string() },
+            (_, "error_write_accounts") => if self == Language::Russian { "Ошибка записи в _accounts.txt: ".to_string() } else { "Error writing to _accounts.txt: ".to_string() },
             (_, "file_processed") => if self == Language::Russian { "Файл обработан: ".to_string() } else { "File processed: ".to_string() },
             (_, "error_write_file") => if self == Language::Russian { "Ошибка записи файла ".to_string() } else { "Error writing file ".to_string() },
             (_, "json_parse_error") => if self == Language::Russian { "Ошибка парсинга JSON ".to_string() } else { "JSON parsing error ".to_string() },
             (_, "file_read_error") => if self == Language::Russian { "Ошибка чтения файла ".to_string() } else { "File read error ".to_string() },
             (_, "folder_read_error") => if self == Language::Russian { "Ошибка чтения папки: ".to_string() } else { "Folder read error: ".to_string() },
-            (_, "processing_complete_created") => if self == Language::Russian { "Обработка завершена! accounts.txt создан в ".to_string() } else { "Processing complete! accounts.txt created in ".to_string() },
+            (_, "processing_complete_created") => if self == Language::Russian { "Обработка завершена! _accounts.txt создан в ".to_string() } else { "Processing complete! _accounts.txt created in ".to_string() },
             (_, "processing_complete_no_files") => if self == Language::Russian { "Обработка завершена! Файлы не найдены или не обработаны.".to_string() } else { "Processing complete! No files found or processed.".to_string() },
             
             _ => key.to_string(),
@@ -93,13 +93,12 @@ fn main() -> eframe::Result<()> {
 
 fn load_icon() -> egui::IconData {
     // Иконка встроена в exe через winres, но для egui нужно загрузить отдельно
-    // Используем встроенные данные или создаём простую иконку
-    let rgba = include_bytes!("../icon.png");
+    let rgba = include_bytes!("../resources/icon.png");
     let decoder = png::Decoder::new(std::io::Cursor::new(rgba));
-    let mut reader = decoder.read_info().expect("Не удалось прочитать PNG");
+    let mut reader = decoder.read_info().expect("Failed to read PNG");
     let mut buf = vec![0; reader.output_buffer_size()];
-    let info = reader.next_frame(&mut buf).expect("Не удалось декодировать PNG");
-    
+    let info = reader.next_frame(&mut buf).expect("Failed to decode PNG");
+
     egui::IconData {
         rgba: buf,
         width: info.width,
@@ -256,12 +255,18 @@ impl eframe::App for MaFileManagerApp {
                 ui.add_space(20.0);
 
                 // Process button
-                let can_process = !self.source_folder.is_empty();
+                // Если source_folder пустой, используем exe_dir
+                let src_path = if self.source_folder.is_empty() {
+                    self.exe_dir.clone()
+                } else {
+                    Path::new(&self.source_folder).to_path_buf()
+                };
+                
                 if ui
-                    .add_enabled(can_process, egui::Button::new(self.language.label("process")))
+                    .button(self.language.label("process"))
                     .clicked()
                 {
-                    let src = Path::new(&self.source_folder);
+                    let src = src_path.as_path();
                     let out = if self.output_folder.is_empty() {
                         src.join("output")
                     } else {
@@ -275,7 +280,7 @@ impl eframe::App for MaFileManagerApp {
                         }
                     }
 
-                    let accounts_file_path = out.join("accounts.txt");
+                    let accounts_file_path = out.join("_accounts.txt");
                     let mut accounts_file: Option<File> = None;
 
                     match fs::read_dir(src) {
@@ -328,7 +333,7 @@ impl eframe::App for MaFileManagerApp {
                                                         _ => path.file_name().unwrap().to_string_lossy().to_string(),
                                                     };
 
-                                                    // Create accounts.txt only on first successful file
+                                                    // Create _accounts.txt only on first successful file
                                                     if accounts_file.is_none() {
                                                         match File::create(&accounts_file_path) {
                                                             Ok(f) => accounts_file = Some(f),
@@ -395,10 +400,6 @@ impl eframe::App for MaFileManagerApp {
                     } else {
                         self.log.push(self.language.label("processing_complete_no_files").to_string());
                     }
-                }
-
-                if !can_process {
-                    ui.label(self.language.label("specify_source"));
                 }
 
                 ui.add_space(10.0);
