@@ -32,7 +32,7 @@ MaFileManager is a graphical utility for managing Steam Guard `.mafile` files. I
 
 ### Pre-built Binary
 
-Download the latest release from the [Releases](https://github.com/yourusername/MaFileManager/releases) page.
+Download the latest release from the [Releases](https://github.com/SlyWater/MaFileManager/releases) page.
 
 ### Build from Source
 
@@ -164,7 +164,7 @@ MaFileManager — это графическая утилита для управ
 
 ### Готовый бинарник
 
-Скачайте последнюю версию со страницы [Releases](https://github.com/yourusername/MaFileManager/releases).
+Скачайте последнюю версию со страницы [Releases](https://github.com/SlyWater/MaFileManager/releases).
 
 ### Сборка из исходников
 
