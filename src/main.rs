@@ -2,7 +2,8 @@
 
 use eframe::egui;
 use rfd::FileDialog;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
+use serde::de::Error;
 use std::fs::{self, File};
 use std::io::Write;
 use std::path::Path;
@@ -128,8 +129,35 @@ impl MaFileManagerApp {
     }
 }
 
+fn de_opt_u64_from_str_or_num<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum StringOrU64 {
+        String(String),
+        U64(u64),
+    }
+
+    let value = Option::<StringOrU64>::deserialize(deserializer)?;
+
+    match value {
+        Some(StringOrU64::U64(n)) => Ok(Some(n)),
+        Some(StringOrU64::String(s)) => {
+            let s = s.trim();
+            if s.is_empty() {
+                Ok(None)
+            } else {
+                s.parse::<u64>().map(Some).map_err(D::Error::custom)
+            }
+        }
+        None => Ok(None),
+    }
+}
 #[derive(Deserialize, Serialize)]
 struct SessionData {
+    #[serde(default, deserialize_with = "de_opt_u64_from_str_or_num")]
     steamid: Option<u64>,
 }
 
@@ -137,6 +165,7 @@ struct SessionData {
 struct FileData {
     account_name: Option<String>,
     shared_secret: Option<String>,
+    #[serde(default, deserialize_with = "de_opt_u64_from_str_or_num")]
     steamid: Option<u64>,
     session: Option<SessionData>,
     identity_secret: Option<String>,
